@@ -7,10 +7,13 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Snake from './Snake'
+import Food from './Food'
 import type { GameState, Direction } from '@/lib/types/game'
 import { GameLoop } from '@/lib/game/gameLoop'
 import { changeDirection, moveSnake } from '@/lib/game/movement'
 import { checkCollisions } from '@/lib/game/collision'
+import { generateFood } from '@/lib/game/food'
+import { checkFoodCollision } from '@/lib/game/scoring'
 import {
   GRID_WIDTH,
   GRID_HEIGHT,
@@ -22,33 +25,45 @@ import {
 const CELL_SIZE = 20 // 各セルのサイズ（px）
 
 export default function GameField() {
-  const [gameState, setGameState] = useState<GameState>(() => ({
-    mode: 'classic',
-    difficulty: 'easy',
-    status: 'ready',
-    score: 0,
-    level: 1,
-    speed: 1.0,
-    timeLeft: 0,
-    grid: {
-      width: GRID_WIDTH,
-      height: GRID_HEIGHT,
-    },
-    snake: {
-      id: 'player',
+  const [gameState, setGameState] = useState<GameState>(() => {
+    const initialSnake = {
+      id: 'player' as const,
       body: Array.from({ length: INITIAL_SNAKE_LENGTH }, (_, i) => ({
         x: INITIAL_PLAYER_POSITION.x - i,
         y: INITIAL_PLAYER_POSITION.y,
       })),
-      direction: 'right',
-      nextDirection: 'right',
+      direction: 'right' as const,
+      nextDirection: 'right' as const,
       color: PLAYER_SNAKE_COLOR,
       score: 0,
       alive: true,
-    },
-    aiSnake: null,
-    foods: [],
-  }))
+    }
+
+    // 初期餌を生成
+    const initialFood = generateFood(
+      GRID_WIDTH,
+      GRID_HEIGHT,
+      initialSnake.body,
+      'normal'
+    )
+
+    return {
+      mode: 'classic',
+      difficulty: 'easy',
+      status: 'ready',
+      score: 0,
+      level: 1,
+      speed: 1.0,
+      timeLeft: 0,
+      grid: {
+        width: GRID_WIDTH,
+        height: GRID_HEIGHT,
+      },
+      snake: initialSnake,
+      aiSnake: null,
+      foods: [initialFood],
+    }
+  })
 
   const [gameLoop] = useState(() => new GameLoop(gameState))
   const gameStateRef = useRef(gameState)
@@ -69,10 +84,31 @@ export default function GameField() {
       const movedSnake = moveSnake(prevState.snake)
 
       // 衝突判定
-      const stateAfterMove = {
+      let stateAfterMove = {
         ...prevState,
         snake: movedSnake,
       }
+
+      // 餌との衝突判定
+      const stateAfterFoodCollision = checkFoodCollision(stateAfterMove)
+
+      // 餌を食べたら新しい餌を生成
+      if (stateAfterFoodCollision.foods.length === 0) {
+        const newFood = generateFood(
+          stateAfterFoodCollision.grid.width,
+          stateAfterFoodCollision.grid.height,
+          stateAfterFoodCollision.snake.body,
+          'normal'
+        )
+        stateAfterMove = {
+          ...stateAfterFoodCollision,
+          foods: [newFood],
+        }
+      } else {
+        stateAfterMove = stateAfterFoodCollision
+      }
+
+      // 壁・自己衝突判定
       const stateAfterCollision = checkCollisions(stateAfterMove)
 
       return stateAfterCollision
@@ -176,6 +212,11 @@ export default function GameField() {
       >
         {/* 蛇を描画 */}
         <Snake snake={gameState.snake} cellSize={CELL_SIZE} />
+
+        {/* 餌を描画 */}
+        {gameState.foods.map((food) => (
+          <Food key={food.id} food={food} cellSize={CELL_SIZE} />
+        ))}
       </div>
 
       {/* ゲームオーバー表示 */}
