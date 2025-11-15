@@ -31,6 +31,8 @@ import {
   PLAYER_SNAKE_COLOR,
   INITIAL_SNAKE_LENGTH,
 } from '@/lib/utils/constants'
+import { collectPlayData } from '@/lib/game/analytics'
+import { saveGameHistory } from '@/lib/db/schema'
 
 const CELL_SIZE = 20 // 各セルのサイズ（px）
 
@@ -79,6 +81,10 @@ export default function GameField() {
   const gameStateRef = useRef(gameState)
   const [winner, setWinner] = useState<'player' | 'ai' | 'draw' | null>(null)
 
+  // ゲーム統計追跡
+  const gameStartTimeRef = useRef<number>(Date.now())
+  const foodsEatenRef = useRef<number>(0)
+
   // ゲーム状態の参照を更新
   useEffect(() => {
     gameStateRef.current = gameState
@@ -103,6 +109,11 @@ export default function GameField() {
 
       // プレイヤーの餌との衝突判定
       const stateAfterPlayerFood = checkFoodCollision(stateAfterMove)
+
+      // 餌を食べたかチェック（スコアが増加した場合）
+      if (stateAfterPlayerFood.score > stateAfterMove.score) {
+        foodsEatenRef.current += 1
+      }
 
       // AIの餌との衝突判定
       let stateAfterAIFood = processAIFoodCollision(stateAfterPlayerFood)
@@ -190,6 +201,14 @@ export default function GameField() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ゲーム開始時に統計をリセット
+  useEffect(() => {
+    if (gameState.status === 'playing') {
+      gameStartTimeRef.current = Date.now()
+      foodsEatenRef.current = 0
+    }
+  }, [gameState.status])
+
   // 方向変更ハンドラ（キーボード＆タッチ共通）
   const handleDirectionChange = useCallback((direction: Direction) => {
     setGameState((prev) => ({
@@ -227,6 +246,22 @@ export default function GameField() {
   useEffect(() => {
     gameLoop.setState(gameState)
   }, [gameState, gameLoop])
+
+  // ゲーム履歴を保存
+  useEffect(() => {
+    if (gameState.status === 'gameOver') {
+      const playData = collectPlayData(
+        gameState,
+        gameStartTimeRef.current,
+        foodsEatenRef.current
+      )
+
+      // 非同期で保存（エラーは無視）
+      saveGameHistory(playData).catch((error) => {
+        console.error('Failed to save game history:', error)
+      })
+    }
+  }, [gameState.status, gameState])
 
   // クリーンアップ
   useEffect(() => {

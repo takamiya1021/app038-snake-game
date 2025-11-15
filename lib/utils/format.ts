@@ -85,7 +85,11 @@ export function formatDifficulty(difficulty: string): string {
  * @param deathCause 死因
  * @returns 日本語死因
  */
-export function formatDeathCause(deathCause: string): string {
+export function formatDeathCause(deathCause: string | null): string {
+  if (!deathCause) {
+    return '不明'
+  }
+
   switch (deathCause) {
     case 'wall':
       return '壁に衝突'

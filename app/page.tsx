@@ -20,6 +20,12 @@ export default function Home() {
         >
           プレイする
         </a>
+        <a
+          href="/history"
+          className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg transition-colors"
+        >
+          プレイ履歴
+        </a>
       </div>
     </main>
   );
