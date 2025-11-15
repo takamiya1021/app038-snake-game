@@ -55,4 +55,5 @@ export interface GameState {
   snake: Snake
   aiSnake: Snake | null
   foods: Food[]
+  leveledUp?: boolean
 }

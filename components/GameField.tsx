@@ -8,12 +8,14 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Snake from './Snake'
 import Food from './Food'
+import LevelUpNotification from './LevelUpNotification'
 import type { GameState, Direction } from '@/lib/types/game'
 import { GameLoop } from '@/lib/game/gameLoop'
 import { changeDirection, moveSnake } from '@/lib/game/movement'
 import { checkCollisions } from '@/lib/game/collision'
 import { generateFood } from '@/lib/game/food'
 import { checkFoodCollision } from '@/lib/game/scoring'
+import { checkLevelUp } from '@/lib/game/level'
 import {
   GRID_WIDTH,
   GRID_HEIGHT,
@@ -108,8 +110,11 @@ export default function GameField() {
         stateAfterMove = stateAfterFoodCollision
       }
 
+      // レベルアップチェック
+      const stateAfterLevelCheck = checkLevelUp(stateAfterMove)
+
       // 壁・自己衝突判定
-      const stateAfterCollision = checkCollisions(stateAfterMove)
+      const stateAfterCollision = checkCollisions(stateAfterLevelCheck)
 
       return stateAfterCollision
     })
@@ -239,6 +244,15 @@ export default function GameField() {
         <p>矢印キー（↑↓←→）で操作</p>
         {gameState.status === 'playing' && <p className="mt-1 text-green-400">ゲーム進行中</p>}
       </div>
+
+      {/* レベルアップ通知 */}
+      <LevelUpNotification
+        show={gameState.leveledUp || false}
+        level={gameState.level}
+        onComplete={() => {
+          setGameState((prev) => ({ ...prev, leveledUp: false }))
+        }}
+      />
     </div>
   )
 }
