@@ -22,7 +22,7 @@ export interface Snake {
 export interface Food {
   id: string
   position: Position
-  type: 'normal' | 'speedBoost' | 'scoreDouble' | 'shrink'
+  type: 'normal' | 'special' | 'speedBoost' | 'scoreDouble' | 'shrink'
   points: number
   effect?: FoodEffect
   expiresAt?: number
@@ -39,7 +39,7 @@ export interface Grid {
   height: number
 }
 
-export type GameMode = 'classic' | 'timeAttack' | 'endless'
+export type GameMode = 'classic' | 'timeAttack' | 'endless' | 'aiBattle'
 export type Difficulty = 'easy' | 'medium' | 'hard'
 export type GameStatus = 'ready' | 'playing' | 'paused' | 'gameOver'
 

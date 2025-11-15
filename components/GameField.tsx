@@ -9,6 +9,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import Snake from './Snake'
 import Food from './Food'
 import LevelUpNotification from './LevelUpNotification'
+import AIControls from './AIControls'
 import type { GameState, Direction } from '@/lib/types/game'
 import { GameLoop } from '@/lib/game/gameLoop'
 import { changeDirection, moveSnake } from '@/lib/game/movement'
@@ -16,6 +17,12 @@ import { checkCollisions } from '@/lib/game/collision'
 import { generateFood } from '@/lib/game/food'
 import { checkFoodCollision } from '@/lib/game/scoring'
 import { checkLevelUp } from '@/lib/game/level'
+import {
+  initializeAISnake,
+  updateAISnake,
+  processAIFoodCollision,
+  checkBattleWinner,
+} from '@/lib/game/aiBattle'
 import {
   GRID_WIDTH,
   GRID_HEIGHT,
@@ -69,6 +76,7 @@ export default function GameField() {
 
   const [gameLoop] = useState(() => new GameLoop(gameState))
   const gameStateRef = useRef(gameState)
+  const [winner, setWinner] = useState<'player' | 'ai' | 'draw' | null>(null)
 
   // ゲーム状態の参照を更新
   useEffect(() => {
@@ -82,41 +90,75 @@ export default function GameField() {
         return prevState
       }
 
-      // 蛇を移動
+      // プレイヤーの蛇を移動
       const movedSnake = moveSnake(prevState.snake)
-
-      // 衝突判定
       let stateAfterMove = {
         ...prevState,
         snake: movedSnake,
       }
 
-      // 餌との衝突判定
-      const stateAfterFoodCollision = checkFoodCollision(stateAfterMove)
+      // AIスネークを更新
+      stateAfterMove = updateAISnake(stateAfterMove)
+
+      // プレイヤーの餌との衝突判定
+      const stateAfterPlayerFood = checkFoodCollision(stateAfterMove)
+
+      // AIの餌との衝突判定
+      let stateAfterAIFood = processAIFoodCollision(stateAfterPlayerFood)
 
       // 餌を食べたら新しい餌を生成
-      if (stateAfterFoodCollision.foods.length === 0) {
+      if (stateAfterAIFood.foods.length === 0) {
+        const allSnakeBodies = [
+          ...stateAfterAIFood.snake.body,
+          ...(stateAfterAIFood.aiSnake?.body || []),
+        ]
         const newFood = generateFood(
-          stateAfterFoodCollision.grid.width,
-          stateAfterFoodCollision.grid.height,
-          stateAfterFoodCollision.snake.body,
+          stateAfterAIFood.grid.width,
+          stateAfterAIFood.grid.height,
+          allSnakeBodies,
           'normal'
         )
         stateAfterMove = {
-          ...stateAfterFoodCollision,
+          ...stateAfterAIFood,
           foods: [newFood],
         }
       } else {
-        stateAfterMove = stateAfterFoodCollision
+        stateAfterMove = stateAfterAIFood
       }
 
       // レベルアップチェック
       const stateAfterLevelCheck = checkLevelUp(stateAfterMove)
 
-      // 壁・自己衝突判定
+      // プレイヤーの壁・自己衝突判定
       const stateAfterCollision = checkCollisions(stateAfterLevelCheck)
 
-      return stateAfterCollision
+      // AIの衝突判定（AIが存在する場合）
+      let finalState = stateAfterCollision
+      if (finalState.aiSnake) {
+        // AI用の衝突判定（プレイヤーとの衝突も含む）
+        const aiCollisionState = {
+          ...finalState,
+          snake: finalState.aiSnake,
+        }
+        const aiAfterCollision = checkCollisions(aiCollisionState)
+
+        finalState = {
+          ...finalState,
+          aiSnake: {
+            ...aiAfterCollision.snake,
+            id: 'ai' as const,
+          },
+        }
+      }
+
+      // 勝敗判定
+      const battleWinner = checkBattleWinner(finalState)
+      if (battleWinner && finalState.aiSnake) {
+        setWinner(battleWinner)
+        finalState = { ...finalState, status: 'gameOver' }
+      }
+
+      return finalState
     })
   }, [])
 
@@ -133,6 +175,12 @@ export default function GameField() {
     }))
     gameLoop.start()
   }, [gameLoop])
+
+  // AI対戦開始
+  const handleStartBattle = useCallback(() => {
+    setGameState((prev) => initializeAISnake(prev))
+    setWinner(null)
+  }, [])
 
   // ゲーム開始（初回のみ）
   useEffect(() => {
@@ -215,14 +263,28 @@ export default function GameField() {
           boxShadow: '0 0 20px rgba(6, 182, 212, 0.3)',
         }}
       >
-        {/* 蛇を描画 */}
+        {/* プレイヤーの蛇を描画 */}
         <Snake snake={gameState.snake} cellSize={CELL_SIZE} />
+
+        {/* AIの蛇を描画 */}
+        {gameState.aiSnake && (
+          <Snake snake={gameState.aiSnake} cellSize={CELL_SIZE} />
+        )}
 
         {/* 餌を描画 */}
         {gameState.foods.map((food) => (
           <Food key={food.id} food={food} cellSize={CELL_SIZE} />
         ))}
       </div>
+
+      {/* AI対戦コントロール */}
+      <AIControls
+        onStartBattle={handleStartBattle}
+        playerSnake={gameState.snake}
+        aiSnake={gameState.aiSnake}
+        gameStatus={gameState.status}
+        winner={winner}
+      />
 
       {/* ゲームオーバー表示 */}
       {gameState.status === 'gameOver' && (
