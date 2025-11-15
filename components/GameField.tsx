@@ -10,6 +10,7 @@ import Snake from './Snake'
 import Food from './Food'
 import LevelUpNotification from './LevelUpNotification'
 import AIControls from './AIControls'
+import TouchControls from './TouchControls'
 import type { GameState, Direction } from '@/lib/types/game'
 import { GameLoop } from '@/lib/game/gameLoop'
 import { changeDirection, moveSnake } from '@/lib/game/movement'
@@ -189,6 +190,14 @@ export default function GameField() {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 方向変更ハンドラ（キーボード＆タッチ共通）
+  const handleDirectionChange = useCallback((direction: Direction) => {
+    setGameState((prev) => ({
+      ...prev,
+      snake: changeDirection(prev.snake, direction),
+    }))
+  }, [])
+
   // キーボード入力ハンドラ
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -202,13 +211,10 @@ export default function GameField() {
       const direction = keyMap[e.key]
       if (direction) {
         e.preventDefault()
-        setGameState((prev) => ({
-          ...prev,
-          snake: changeDirection(prev.snake, direction),
-        }))
+        handleDirectionChange(direction)
       }
     },
-    []
+    [handleDirectionChange]
   )
 
   // キーボードイベントリスナーの設定
@@ -303,9 +309,12 @@ export default function GameField() {
 
       {/* 操作説明 */}
       <div className="text-center text-sm text-gray-500">
-        <p>矢印キー（↑↓←→）で操作</p>
+        <p className="hidden md:block">矢印キー（↑↓←→）で操作</p>
         {gameState.status === 'playing' && <p className="mt-1 text-green-400">ゲーム進行中</p>}
       </div>
+
+      {/* タッチコントロール（モバイルのみ） */}
+      <TouchControls onDirectionChange={handleDirectionChange} />
 
       {/* レベルアップ通知 */}
       <LevelUpNotification
