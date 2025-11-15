@@ -6,9 +6,21 @@ export default function Home() {
       }}>
         SNAKE GAME
       </h1>
-      <p className="text-xl text-gray-400">
+      <p className="text-xl text-gray-400 mb-12">
         AI搭載スネークゲーム
       </p>
+
+      <div className="flex flex-col gap-4">
+        <a
+          href="/play"
+          className="px-8 py-4 bg-cyan-500 hover:bg-cyan-600 text-white font-bold rounded-lg transition-colors shadow-lg"
+          style={{
+            boxShadow: '0 0 10px rgba(6, 182, 212, 0.5)',
+          }}
+        >
+          プレイする
+        </a>
+      </div>
     </main>
   );
 }
