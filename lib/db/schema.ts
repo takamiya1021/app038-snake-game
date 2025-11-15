@@ -112,16 +112,21 @@ export async function getHistoryByMode(
 }
 
 /**
- * 統計情報を取得
- * @returns 統計情報
+ * 統計情報の型定義
  */
-export async function getStatistics(): Promise<{
+export interface Statistics {
   totalGames: number
   totalScore: number
   averageScore: number
-  highScore: number
+  highestScore: number
   totalPlayTime: number
-}> {
+}
+
+/**
+ * 統計情報を取得
+ * @returns 統計情報
+ */
+export async function getStatistics(): Promise<Statistics> {
   try {
     const allHistory = await db.gameHistory.toArray()
 
@@ -131,7 +136,7 @@ export async function getStatistics(): Promise<{
       0
     )
     const averageScore = totalGames > 0 ? totalScore / totalGames : 0
-    const highScore =
+    const highestScore =
       allHistory.length > 0
         ? Math.max(...allHistory.map((game) => game.finalScore))
         : 0
@@ -144,7 +149,7 @@ export async function getStatistics(): Promise<{
       totalGames,
       totalScore,
       averageScore,
-      highScore,
+      highestScore,
       totalPlayTime,
     }
   } catch (error) {
@@ -153,7 +158,7 @@ export async function getStatistics(): Promise<{
       totalGames: 0,
       totalScore: 0,
       averageScore: 0,
-      highScore: 0,
+      highestScore: 0,
       totalPlayTime: 0,
     }
   }
