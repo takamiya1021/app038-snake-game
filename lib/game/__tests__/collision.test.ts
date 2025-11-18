@@ -45,6 +45,7 @@ describe('Collision Detection', () => {
       snake,
       aiSnake: null,
       foods: [],
+      foodsEaten: 0,
     }
   })
 

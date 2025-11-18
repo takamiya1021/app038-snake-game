@@ -44,6 +44,7 @@ describe('AI Battle Logic', () => {
       snake: playerSnake,
       aiSnake: null,
       foods: [],
+      foodsEaten: 0,
     }
   })
 

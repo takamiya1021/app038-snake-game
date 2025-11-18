@@ -4,7 +4,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import GameHistory from '@/components/GameHistory'
 import ScoreGraph from '@/components/ScoreGraph'
@@ -14,6 +14,10 @@ import type { GameHistory as GameHistoryType } from '@/lib/db/schema'
 export default function HistoryPage() {
   const [history, setHistory] = useState<GameHistoryType[]>([])
   const [loading, setLoading] = useState(true)
+
+  const handleHistoryReset = useCallback(() => {
+    setHistory([])
+  }, [])
 
   useEffect(() => {
     async function loadHistory() {
@@ -64,7 +68,7 @@ export default function HistoryPage() {
 
             {/* 履歴セクション */}
             <section>
-              <GameHistory />
+              <GameHistory onHistoryReset={handleHistoryReset} />
             </section>
           </div>
         )}

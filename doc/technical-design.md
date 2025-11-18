@@ -15,8 +15,8 @@
 - TypeScript でゲームロジックの型安全性を確保
 
 ### AI 統合
-- **Primary**: Google Gemini API（gemini-1.5-flash）
-- **Fallback**: OpenAI API（gpt-4o-mini）
+- **Primary**: Google Gemini API（gemini-2.5-flash）
+- **Fallback**: ローカルヒューリスティック分析（サーバーAPI未設定時）
 
 **選択理由**:
 - Gemini Flash は高速・低コスト
@@ -397,7 +397,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 export async function analyzeSnakePlayStyle(
   session: GameSession
 ): Promise<string> {
-  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
   const scoreEfficiency = session.finalScore / (session.playTime / 60); // 1分あたりのスコア
 

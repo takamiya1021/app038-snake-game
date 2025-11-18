@@ -303,20 +303,20 @@ AI によるプレイスタイル分析機能を実装する。
 
 ### タスク
 
-- [ ] **プレイデータ収集ロジックテスト作成（Red）**
+- [x] **プレイデータ収集ロジックテスト作成（Red）**
   - `lib/game/analytics.test.ts` 作成
   - データ収集テスト
   - 統計計算テスト
 
-- [ ] **プレイデータ収集ロジック実装（Green）**
+- [x] **プレイデータ収集ロジック実装（Green）**
   - `lib/game/analytics.ts` 実装
   - 生存時間、スコア効率計算
 
-- [ ] **AI分析Server Action実装（Red → Green）**
+- [x] **AI分析Server Action実装（Red → Green）**
   - `app/actions/ai.ts` 実装
   - `analyzeSnakePlayStyle()` テスト・実装
 
-- [ ] **AnalysisReportコンポーネント実装（Red → Green → Refactor）**
+- [x] **AnalysisReportコンポーネント実装（Red → Green → Refactor）**
   - `components/AnalysisReport.tsx` テスト・実装
   - AIアドバイス表示
 
@@ -339,19 +339,19 @@ AI によるプレイスタイル分析機能を実装する。
 
 ### タスク
 
-- [ ] **スワイプ検出ロジックテスト作成（Red）**
+- [x] **スワイプ検出ロジックテスト作成（Red）**
   - `lib/game/touch.test.ts` 作成
   - スワイプ方向判定テスト
 
-- [ ] **スワイプ検出ロジック実装（Green）**
+- [x] **スワイプ検出ロジック実装（Green）**
   - `lib/game/touch.ts` 実装
   - `handleSwipe()` 関数実装
 
-- [ ] **TouchControlsコンポーネント実装（Red → Green → Refactor）**
+- [x] **TouchControlsコンポーネント実装（Red → Green → Refactor）**
   - `components/TouchControls.tsx` テスト・実装
   - スワイプエリア表示（スマホ時のみ）
 
-- [ ] **レスポンシブデザイン調整**
+- [x] **レスポンシブデザイン調整**
   - スマホ画面でのレイアウト最適化
   - タッチ操作エリア確保
 

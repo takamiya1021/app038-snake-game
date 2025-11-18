@@ -44,6 +44,7 @@ describe('Play Analytics', () => {
       snake: playerSnake,
       aiSnake: null,
       foods: [],
+      foodsEaten: 0,
     }
   })
 
@@ -162,7 +163,8 @@ describe('Play Analytics', () => {
       const startTime = Date.now() - 30000 // 30秒前
       const foodsEaten = 10
 
-      const playData = collectPlayData(baseGameState, startTime, foodsEaten)
+      baseGameState.foodsEaten = foodsEaten
+      const playData = collectPlayData(baseGameState, startTime)
 
       expect(playData).toMatchObject({
         finalScore: 100,
@@ -188,7 +190,10 @@ describe('Play Analytics', () => {
       }
 
       const gameState = { ...baseGameState, snake }
-      const playData = collectPlayData(gameState, Date.now() - 10000, 5)
+      const playData = collectPlayData(
+        { ...gameState, foodsEaten: 5 },
+        Date.now() - 10000
+      )
 
       expect(playData.deathCause).toBe('wall')
     })
@@ -210,7 +215,10 @@ describe('Play Analytics', () => {
         aiSnake,
       }
 
-      const playData = collectPlayData(gameState, Date.now() - 15000, 8)
+      const playData = collectPlayData(
+        { ...gameState, foodsEaten: 8 },
+        Date.now() - 15000
+      )
 
       expect(playData.mode).toBe('aiBattle')
       expect(playData.deathCause).toBe('ai')
@@ -218,13 +226,15 @@ describe('Play Analytics', () => {
 
     it('should calculate correct efficiency for short games', () => {
       const startTime = Date.now() - 5000 // 5秒前
-      const playData = collectPlayData(baseGameState, startTime, 10)
+      baseGameState.foodsEaten = 10
+      const playData = collectPlayData(baseGameState, startTime)
 
       expect(playData.scoreEfficiency).toBeGreaterThan(15) // 100 / 5 = 20点/秒前後
     })
 
     it('should handle zero foods eaten', () => {
-      const playData = collectPlayData(baseGameState, Date.now() - 10000, 0)
+      baseGameState.foodsEaten = 0
+      const playData = collectPlayData(baseGameState, Date.now() - 10000)
 
       expect(playData.foodsEaten).toBe(0)
       expect(playData.avgScorePerFood).toBe(0)

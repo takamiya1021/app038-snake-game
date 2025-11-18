@@ -11,6 +11,7 @@ import Food from './Food'
 import LevelUpNotification from './LevelUpNotification'
 import AIControls from './AIControls'
 import TouchControls from './TouchControls'
+import AIAnalysisPanel from './AIAnalysisPanel'
 import type { GameState, Direction } from '@/lib/types/game'
 import { GameLoop } from '@/lib/game/gameLoop'
 import { changeDirection, moveSnake } from '@/lib/game/movement'
@@ -31,7 +32,7 @@ import {
   PLAYER_SNAKE_COLOR,
   INITIAL_SNAKE_LENGTH,
 } from '@/lib/utils/constants'
-import { collectPlayData } from '@/lib/game/analytics'
+import { collectPlayData, type PlayData } from '@/lib/game/analytics'
 import { saveGameHistory } from '@/lib/db/schema'
 
 const CELL_SIZE = 20 // 各セルのサイズ（px）
@@ -74,16 +75,18 @@ export default function GameField() {
       snake: initialSnake,
       aiSnake: null,
       foods: [initialFood],
+      foodsEaten: 0,
     }
   })
 
   const [gameLoop] = useState(() => new GameLoop(gameState))
   const gameStateRef = useRef(gameState)
   const [winner, setWinner] = useState<'player' | 'ai' | 'draw' | null>(null)
+  const [lastPlayData, setLastPlayData] = useState<PlayData | null>(null)
 
   // ゲーム統計追跡
   const gameStartTimeRef = useRef<number>(Date.now())
-  const foodsEatenRef = useRef<number>(0)
+  const historySavedRef = useRef<boolean>(false)
 
   // ゲーム状態の参照を更新
   useEffect(() => {
@@ -109,11 +112,7 @@ export default function GameField() {
 
       // プレイヤーの餌との衝突判定
       const stateAfterPlayerFood = checkFoodCollision(stateAfterMove)
-
-      // 餌を食べたかチェック（スコアが増加した場合）
-      if (stateAfterPlayerFood.score > stateAfterMove.score) {
-        foodsEatenRef.current += 1
-      }
+      const playerAteFood = stateAfterPlayerFood.score > prevState.score
 
       // AIの餌との衝突判定
       let stateAfterAIFood = processAIFoodCollision(stateAfterPlayerFood)
@@ -170,7 +169,14 @@ export default function GameField() {
         finalState = { ...finalState, status: 'gameOver' }
       }
 
-      return finalState
+      const foodsEaten = playerAteFood
+        ? prevState.foodsEaten + 1
+        : prevState.foodsEaten
+
+      return {
+        ...finalState,
+        foodsEaten,
+      }
     })
   }, [])
 
@@ -184,6 +190,7 @@ export default function GameField() {
     setGameState((prev) => ({
       ...prev,
       status: 'playing',
+      foodsEaten: 0,
     }))
     gameLoop.start()
   }, [gameLoop])
@@ -205,7 +212,7 @@ export default function GameField() {
   useEffect(() => {
     if (gameState.status === 'playing') {
       gameStartTimeRef.current = Date.now()
-      foodsEatenRef.current = 0
+      setLastPlayData(null)
     }
   }, [gameState.status])
 
@@ -249,19 +256,26 @@ export default function GameField() {
 
   // ゲーム履歴を保存
   useEffect(() => {
-    if (gameState.status === 'gameOver') {
-      const playData = collectPlayData(
-        gameState,
-        gameStartTimeRef.current,
-        foodsEatenRef.current
-      )
-
-      // 非同期で保存（エラーは無視）
-      saveGameHistory(playData).catch((error) => {
-        console.error('Failed to save game history:', error)
-      })
+    if (gameState.status === 'playing') {
+      historySavedRef.current = false
+      return
     }
-  }, [gameState.status, gameState])
+
+    if (gameState.status !== 'gameOver' || historySavedRef.current) {
+      return
+    }
+
+    historySavedRef.current = true
+
+    const finalState = gameStateRef.current
+    const playData = collectPlayData(finalState, gameStartTimeRef.current)
+    setLastPlayData(playData)
+
+    // 非同期で保存（エラーは無視）
+    saveGameHistory(playData).catch((error) => {
+      console.error('Failed to save game history:', error)
+    })
+  }, [gameState.status])
 
   // クリーンアップ
   useEffect(() => {
@@ -282,11 +296,15 @@ export default function GameField() {
           <span className="text-gray-400">レベル:</span>
           <span className="font-bold text-green-400">Lv.{gameState.level}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-gray-400">速度:</span>
-          <span className="font-bold text-yellow-400">×{gameState.speed.toFixed(1)}</span>
-        </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-400">速度:</span>
+        <span className="font-bold text-yellow-400">×{gameState.speed.toFixed(1)}</span>
       </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-400">餌:</span>
+        <span className="font-bold text-pink-400">{gameState.foodsEaten}</span>
+      </div>
+    </div>
 
       {/* ゲームグリッド */}
       <div
@@ -340,6 +358,11 @@ export default function GameField() {
           </div>
           <p className="text-gray-400">最終スコア: {gameState.score}</p>
         </div>
+      )}
+
+      {/* AI分析パネル */}
+      {gameState.status === 'gameOver' && (
+        <AIAnalysisPanel playData={lastPlayData} />
       )}
 
       {/* 操作説明 */}

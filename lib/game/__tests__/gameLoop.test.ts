@@ -39,6 +39,7 @@ describe('GameLoop', () => {
       },
       aiSnake: null,
       foods: [],
+      foodsEaten: 0,
     }
 
     gameLoop = new GameLoop(initialState)

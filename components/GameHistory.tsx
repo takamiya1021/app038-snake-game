@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react'
 import {
   getGameHistory,
   getStatistics,
+  clearAllHistory,
   type GameHistory as GameHistoryType,
   type Statistics,
 } from '@/lib/db/schema'
@@ -19,11 +20,24 @@ import {
   formatDeathCause,
 } from '@/lib/utils/format'
 
-export default function GameHistory() {
+interface GameHistoryProps {
+  onHistoryReset?: () => void
+}
+
+export default function GameHistory({ onHistoryReset }: GameHistoryProps = {}) {
   const [history, setHistory] = useState<GameHistoryType[]>([])
   const [statistics, setStatistics] = useState<Statistics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [clearing, setClearing] = useState(false)
+
+  const initialStats: Statistics = {
+    totalGames: 0,
+    totalScore: 0,
+    averageScore: 0,
+    highestScore: 0,
+    totalPlayTime: 0,
+  }
 
   useEffect(() => {
     async function loadHistory() {
@@ -71,9 +85,45 @@ export default function GameHistory() {
     )
   }
 
+  async function handleClearHistory() {
+    if (clearing) return
+
+    const confirmed = window.confirm('履歴をすべて削除します。よろしいですか？')
+    if (!confirmed) return
+
+    try {
+      setClearing(true)
+      await clearAllHistory()
+      setHistory([])
+      setStatistics(initialStats)
+      setError(null)
+      if (onHistoryReset) {
+        onHistoryReset()
+      }
+    } catch (err) {
+      console.error('Failed to clear history:', err)
+      setError('履歴のリセットに失敗しました')
+    } finally {
+      setClearing(false)
+    }
+  }
+
   return (
     <div className="w-full max-w-4xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-6 text-cyan-400">ゲーム履歴</h2>
+      <div className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-2xl font-bold text-cyan-400">ゲーム履歴</h2>
+        <button
+          onClick={handleClearHistory}
+          disabled={clearing}
+          className={`px-4 py-2 rounded-lg border text-sm transition-all ${
+            clearing
+              ? 'border-gray-600 text-gray-500 cursor-not-allowed'
+              : 'border-red-500 text-red-400 hover:bg-red-500/10'
+          }`}
+        >
+          {clearing ? 'リセット中...' : '履歴をリセット'}
+        </button>
+      </div>
 
       {/* Statistics Summary */}
       {statistics && (

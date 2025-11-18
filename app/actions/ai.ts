@@ -37,9 +37,10 @@ function calculateScoreGrade(score: number): 'S' | 'A' | 'B' | 'C' | 'D' {
  * @returns 分析結果
  */
 export async function analyzeSnakePlayStyle(
-  playData: PlayData
+  playData: PlayData,
+  apiKeyOverride?: string
 ): Promise<AnalysisResult> {
-  const apiKey = process.env.GEMINI_API_KEY
+  const apiKey = apiKeyOverride?.trim() || process.env.GEMINI_API_KEY
 
   // APIキーがない場合は簡易分析を返す
   if (!apiKey) {
@@ -48,7 +49,7 @@ export async function analyzeSnakePlayStyle(
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     const prompt = createAnalysisPrompt(playData)
     const result = await model.generateContent(prompt)

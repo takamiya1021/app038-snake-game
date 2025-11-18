@@ -2,7 +2,14 @@
  * プレイ画面
  */
 
-import GameField from '@/components/GameField'
+import dynamic from 'next/dynamic'
+
+const GameField = dynamic(() => import('@/components/GameField'), {
+  ssr: false,
+  loading: () => (
+    <div className="text-gray-400 text-center">ゲームを読み込み中...</div>
+  ),
+})
 
 export default function PlayPage() {
   return (

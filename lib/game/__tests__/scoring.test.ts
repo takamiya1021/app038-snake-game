@@ -40,6 +40,7 @@ describe('Scoring Logic', () => {
       snake,
       aiSnake: null,
       foods: [],
+      foodsEaten: 0,
     }
   })
 

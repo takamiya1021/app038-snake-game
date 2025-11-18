@@ -40,6 +40,7 @@ describe('Level Up Logic', () => {
       },
       aiSnake: null,
       foods: [],
+      foodsEaten: 0,
     }
   })
 

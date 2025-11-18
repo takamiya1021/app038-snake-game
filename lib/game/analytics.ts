@@ -106,8 +106,7 @@ export function calculateAvgScorePerFood(
  */
 export function collectPlayData(
   gameState: GameState,
-  startTime: number,
-  foodsEaten: number
+  startTime: number
 ): PlayData {
   const endTime = Date.now()
   const survivalTime = endTime - startTime
@@ -117,10 +116,8 @@ export function collectPlayData(
     survivalTime
   )
 
-  const avgScorePerFood = calculateAvgScorePerFood(
-    gameState.score,
-    foodsEaten
-  )
+  const foodsEaten = gameState.foodsEaten ?? 0
+  const avgScorePerFood = calculateAvgScorePerFood(gameState.score, foodsEaten)
 
   const deathCause = determineDeathCause(gameState, gameState.snake)
 

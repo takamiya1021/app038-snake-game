@@ -60,6 +60,7 @@ describe('AI Snake Logic', () => {
       snake: playerSnake,
       aiSnake,
       foods: [],
+      foodsEaten: 0,
     }
   })
 
