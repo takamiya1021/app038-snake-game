@@ -11,7 +11,13 @@ const GameField = dynamic(() => import('@/components/GameField'), {
   ),
 })
 
-export default function PlayPage() {
+export default function PlayPage({
+  searchParams,
+}: {
+  searchParams: { ai?: string }
+}) {
+  const enableAI = searchParams.ai === 'true'
+
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8">
       <h1
@@ -23,7 +29,7 @@ export default function PlayPage() {
         SNAKE GAME
       </h1>
 
-      <GameField />
+      <GameField enableAI={enableAI} />
 
       <div className="mt-8 text-center">
         <a

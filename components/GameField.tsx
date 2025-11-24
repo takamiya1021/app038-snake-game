@@ -12,6 +12,7 @@ import LevelUpNotification from './LevelUpNotification'
 import AIControls from './AIControls'
 import TouchControls from './TouchControls'
 import AIAnalysisPanel from './AIAnalysisPanel'
+import CountdownOverlay from './CountdownOverlay'
 import type { GameState, Direction } from '@/lib/types/game'
 import { GameLoop } from '@/lib/game/gameLoop'
 import { changeDirection, moveSnake } from '@/lib/game/movement'
@@ -37,7 +38,11 @@ import { saveGameHistory } from '@/lib/db/schema'
 
 const CELL_SIZE = 20 // 各セルのサイズ（px）
 
-export default function GameField() {
+interface GameFieldProps {
+  enableAI?: boolean
+}
+
+export default function GameField({ enableAI = false }: GameFieldProps) {
   const [gameState, setGameState] = useState<GameState>(() => {
     const initialSnake = {
       id: 'player' as const,
@@ -83,6 +88,8 @@ export default function GameField() {
   const gameStateRef = useRef(gameState)
   const [winner, setWinner] = useState<'player' | 'ai' | 'draw' | null>(null)
   const [lastPlayData, setLastPlayData] = useState<PlayData | null>(null)
+  const [eatingFoods, setEatingFoods] = useState<typeof gameState.foods>([])
+  const [showCountdown, setShowCountdown] = useState(true)
 
   // ゲーム統計追跡
   const gameStartTimeRef = useRef<number>(Date.now())
@@ -105,6 +112,28 @@ export default function GameField() {
       let stateAfterMove = {
         ...prevState,
         snake: movedSnake,
+      }
+
+      // 餌を食べるかチェック（アニメーション用）
+      const head = movedSnake.body[0]
+      const eatenFoodIndex = prevState.foods.findIndex(
+        (food) => food.position.x === head.x && food.position.y === head.y
+      )
+
+      if (eatenFoodIndex !== -1) {
+        const eatenFood = prevState.foods[eatenFoodIndex]
+        // 食べられた餌をeatingFoods配列に追加（重複チェック）
+        setEatingFoods(prev => {
+          // 既に存在する場合は追加しない
+          if (prev.some(f => f.id === eatenFood.id)) {
+            return prev
+          }
+          return [...prev, eatenFood]
+        })
+        // 400msアニメーション後に削除
+        setTimeout(() => {
+          setEatingFoods(prev => prev.filter(f => f.id !== eatenFood.id))
+        }, 400)
       }
 
       // AIスネークを更新
@@ -197,16 +226,76 @@ export default function GameField() {
 
   // AI対戦開始
   const handleStartBattle = useCallback(() => {
-    setGameState((prev) => initializeAISnake(prev))
-    setWinner(null)
-  }, [])
+    setGameState((prev) => {
+      // ゲームオーバー時に押された場合は、ゲームをリセットしてAI対戦を開始
+      if (prev.status === 'gameOver') {
+        const initialSnake = {
+          id: 'player' as const,
+          body: Array.from({ length: INITIAL_SNAKE_LENGTH }, (_, i) => ({
+            x: INITIAL_PLAYER_POSITION.x - i,
+            y: INITIAL_PLAYER_POSITION.y,
+          })),
+          direction: 'right' as const,
+          nextDirection: 'right' as const,
+          color: PLAYER_SNAKE_COLOR,
+          score: 0,
+          alive: true,
+        }
 
-  // ゲーム開始（初回のみ）
-  useEffect(() => {
+        const initialFood = generateFood(
+          GRID_WIDTH,
+          GRID_HEIGHT,
+          initialSnake.body,
+          'normal'
+        )
+
+        const resetState: GameState = {
+          mode: prev.mode,
+          difficulty: prev.difficulty,
+          status: 'ready', // readyに変更（カウントダウン後に開始）
+          score: 0,
+          level: 1,
+          speed: 1.0, // 速度を初期化
+          timeLeft: 0,
+          grid: {
+            width: GRID_WIDTH,
+            height: GRID_HEIGHT,
+          },
+          snake: initialSnake,
+          aiSnake: null,
+          foods: [initialFood],
+          foodsEaten: 0,
+        }
+
+        // カウントダウンを再表示
+        setShowCountdown(true)
+
+        // AIを追加して返す
+        return initializeAISnake(resetState)
+      }
+
+      // プレイ中の場合はそのままAIを追加
+      return initializeAISnake(prev)
+    })
+    setWinner(null)
+
+    // ゲームループを再開（ゲームオーバーからの復帰時）
+    if (gameState.status === 'gameOver') {
+      gameLoop.start()
+    }
+  }, [gameLoop, gameState.status])
+
+  // カウントダウン完了時のハンドラ
+  const handleCountdownComplete = useCallback(() => {
+    setShowCountdown(false)
     if (gameState.status === 'ready') {
+      // AI対戦モードが有効な場合、AIを初期化してからゲームを開始
+      if (enableAI) {
+        setGameState((prev) => initializeAISnake(prev))
+      }
       startGame()
     }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [gameState.status, startGame, enableAI])
 
   // ゲーム開始時に統計をリセット
   useEffect(() => {
@@ -296,15 +385,15 @@ export default function GameField() {
           <span className="text-gray-400">レベル:</span>
           <span className="font-bold text-green-400">Lv.{gameState.level}</span>
         </div>
-      <div className="flex items-center gap-2">
-        <span className="text-gray-400">速度:</span>
-        <span className="font-bold text-yellow-400">×{gameState.speed.toFixed(1)}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400">速度:</span>
+          <span className="font-bold text-yellow-400">×{gameState.speed.toFixed(1)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-gray-400">餌:</span>
+          <span className="font-bold text-pink-400">{gameState.foodsEaten}</span>
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-gray-400">餌:</span>
-        <span className="font-bold text-pink-400">{gameState.foodsEaten}</span>
-      </div>
-    </div>
 
       {/* ゲームグリッド */}
       <div
@@ -332,7 +421,22 @@ export default function GameField() {
 
         {/* 餌を描画 */}
         {gameState.foods.map((food) => (
-          <Food key={food.id} food={food} cellSize={CELL_SIZE} />
+          <Food
+            key={food.id}
+            food={food}
+            cellSize={CELL_SIZE}
+            isBeingEaten={false}
+          />
+        ))}
+
+        {/* 食べられている途中の餌を描画（アニメーション用） */}
+        {eatingFoods.map((food) => (
+          <Food
+            key={`eating-${food.id}`}
+            food={food}
+            cellSize={CELL_SIZE}
+            isBeingEaten={true}
+          />
         ))}
       </div>
 
@@ -382,6 +486,9 @@ export default function GameField() {
           setGameState((prev) => ({ ...prev, leveledUp: false }))
         }}
       />
+
+      {/* カウントダウンオーバーレイ */}
+      {showCountdown && <CountdownOverlay onComplete={handleCountdownComplete} />}
     </div>
   )
 }

@@ -1,3 +1,5 @@
+import ModeSelector from '@/components/ModeSelector'
+
 export default function Home() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-8">
@@ -10,23 +12,8 @@ export default function Home() {
         AI搭載スネークゲーム
       </p>
 
-      <div className="flex flex-col gap-4">
-        <a
-          href="/play"
-          className="px-8 py-4 bg-cyan-500 hover:bg-cyan-600 text-white font-bold rounded-lg transition-colors shadow-lg"
-          style={{
-            boxShadow: '0 0 10px rgba(6, 182, 212, 0.5)',
-          }}
-        >
-          プレイする
-        </a>
-        <a
-          href="/history"
-          className="px-8 py-4 bg-gray-700 hover:bg-gray-600 text-white font-bold rounded-lg transition-colors"
-        >
-          プレイ履歴
-        </a>
-      </div>
+      <ModeSelector />
     </main>
   );
 }
+

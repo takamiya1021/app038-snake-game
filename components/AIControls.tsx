@@ -30,9 +30,9 @@ export default function AIControls({
       {!isBattleActive && (
         <button
           onClick={onStartBattle}
-          disabled={!isPlaying}
+          disabled={!isPlaying && gameStatus !== 'gameOver' && gameStatus !== 'ready'}
           className={`px-6 py-3 rounded-lg font-bold text-lg transition-all ${
-            isPlaying
+            isPlaying || gameStatus === 'gameOver' || gameStatus === 'ready'
               ? 'bg-red-600 hover:bg-red-700 text-white cursor-pointer hover:scale-105'
               : 'bg-gray-600 text-gray-400 cursor-not-allowed'
           }`}

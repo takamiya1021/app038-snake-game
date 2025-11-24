@@ -22,12 +22,18 @@ export default function AIAnalysisPanel({ playData }: AIAnalysisPanelProps) {
   const [apiKey, setApiKey] = useState('')
   const [isKeyLoaded, setIsKeyLoaded] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
     const stored = window.localStorage.getItem('snake-gemini-api-key')
     if (stored) {
       setApiKey(stored)
+      // APIキーが設定済みの場合は閉じておく
+      setIsSettingsOpen(false)
+    } else {
+      // APIキーが未設定の場合は開いておく
+      setIsSettingsOpen(true)
     }
     setIsKeyLoaded(true)
   }, [])
@@ -76,49 +82,67 @@ export default function AIAnalysisPanel({ playData }: AIAnalysisPanelProps) {
             <span>AIプレイ分析</span>
           </h3>
           <p className="text-sm text-gray-400">
-            最新のプレイをGeminiに送信して、強みと改善ポイントを確認できます。APIキーはブラウザのローカルストレージにのみ保存されます。
+            最新のプレイをGeminiに送信して、強みと改善ポイントを確認できます。
           </p>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-xs text-gray-400 uppercase tracking-wide">
-            Gemini API Key
-          </label>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => persistApiKey(e.target.value)}
-              placeholder="AIz..."
-              className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-              disabled={!isKeyLoaded}
-            />
-            <button
-              type="button"
-              onClick={handleClearKey}
-              disabled={!apiKey}
-              className={`px-4 py-2 text-sm rounded-lg border ${
-                apiKey
-                  ? 'border-gray-600 text-gray-200 hover:bg-gray-700'
-                  : 'border-gray-700 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              クリア
-            </button>
+        {/* API設定の折りたたみボタン */}
+        <button
+          onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+          className="flex items-center justify-between w-full px-4 py-2 bg-gray-800/50 hover:bg-gray-800 rounded-lg border border-gray-700 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⚙️</span>
+            <span className="text-sm font-medium text-gray-300">API設定</span>
+            {apiKey && (
+              <span className="text-xs text-green-400">(設定済み)</span>
+            )}
           </div>
-          <p className="text-xs text-gray-500">
-            ※ 入力したキーはこのブラウザのローカルストレージに保存され、サーバー側には保持されません。
-          </p>
-        </div>
+          <span className={`text-gray-400 transition-transform ${isSettingsOpen ? 'rotate-180' : ''}`}>
+            ▼
+          </span>
+        </button>
+
+        {/* 折りたたみ可能なAPI設定エリア */}
+        {isSettingsOpen && (
+          <div className="space-y-2 border-l-2 border-purple-500/30 pl-4 animate-in slide-in-from-top-2">
+            <label className="text-xs text-gray-400 uppercase tracking-wide">
+              Gemini API Key
+            </label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="password"
+                value={apiKey}
+                onChange={(e) => persistApiKey(e.target.value)}
+                placeholder="AIz..."
+                className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                disabled={!isKeyLoaded}
+              />
+              <button
+                type="button"
+                onClick={handleClearKey}
+                disabled={!apiKey}
+                className={`px-4 py-2 text-sm rounded-lg border ${apiKey
+                    ? 'border-gray-600 text-gray-200 hover:bg-gray-700'
+                    : 'border-gray-700 text-gray-500 cursor-not-allowed'
+                  }`}
+              >
+                クリア
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">
+              ※ 入力したキーはこのブラウザのローカルストレージに保存され、サーバー側には保持されません。
+            </p>
+          </div>
+        )}
 
         <button
           onClick={handleAnalyze}
           disabled={disabled}
-          className={`w-full sm:w-auto px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-            disabled
-              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-              : 'bg-purple-600 text-white hover:bg-purple-500'
-          }`}
+          className={`w-full sm:w-auto px-5 py-2 rounded-lg text-sm font-semibold transition-all ${disabled
+            ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+            : 'bg-purple-600 text-white hover:bg-purple-500'
+            }`}
         >
           {isPending ? '分析中...' : 'AIに分析してもらう'}
         </button>
